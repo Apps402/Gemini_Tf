@@ -1,0 +1,68 @@
+resource_groups = {
+  "rg-prod-aks-eastus" = {
+    location = "eastus"
+    tags     = { Environment = "Prod", Project = "Gemini" }
+  }
+}
+
+registries = {
+  "acrprodgemini" = {
+    resource_group_name = "rg-prod-aks-eastus"
+    location            = "eastus"
+    sku                 = "Premium"
+    georeplications = [
+      {
+        location                = "westus"
+        zone_redundancy_enabled = true
+      }
+    ]
+    network_rule_set = {
+      default_action = "Deny"
+      ip_rule = [
+        {
+          action   = "Allow"
+          ip_range = "1.2.3.4/32"
+        }
+      ]
+    }
+    retention_policy = {
+      enabled = true
+      days    = 30
+    }
+  }
+}
+
+clusters = {
+  "aks-prod-eastus" = {
+    resource_group_name = "rg-prod-aks-eastus"
+    location            = "eastus"
+    dns_prefix          = "aks-prod"
+    sku_tier            = "Standard" # Production SLA
+    
+    default_node_pool = {
+      name                 = "systempool"
+      node_count           = 3
+      vm_size              = "Standard_DS2_v2"
+      auto_scaling_enabled = true
+      min_count            = 3
+      max_count            = 5
+      zones                = ["1", "2", "3"]
+    }
+
+    identity = {
+      type = "SystemAssigned"
+    }
+
+    network_profile = {
+      network_plugin = "azure"
+      network_policy = "azure"
+      outbound_type  = "loadBalancer"
+    }
+
+    azure_active_directory_role_based_access_control = {
+      managed                = true
+      admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"] # Example GUID
+      azure_rbac_enabled     = true
+    }
+  }
+}
